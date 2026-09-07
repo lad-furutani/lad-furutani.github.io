@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UnifiedCalendar</title>
+</head>
+<body>
+  <main>
+    <h1>UnifiedCalendar</h1>
+
+    <p>Google Calendar と Microsoft 365 の予定を、Windows 上の1つの時系列へまとめて表示する参照専用デスクトップアプリです。複数アカウント・複数カレンダーに対応し、タスクトレイに常駐して予定を定期的に更新します。</p>
+
+    <p>現在のリリース: <strong>1.0.0</strong></p>
+
+    <h2>主な機能</h2>
+
+    <ul>
+      <li>Google Calendar / Microsoft 365 の複数アカウントを統合表示</li>
+      <li>終日予定と時刻指定予定を日付ごとのタイムラインへ整理</li>
+      <li>表示対象カレンダー、表示日数、文字サイズ、表示密度、色分けルールを設定可能</li>
+      <li>予定の詳細、元の予定、オンライン会議へのリンクを表示</li>
+      <li>手動更新、定期更新、スリープ復帰時の更新に対応</li>
+      <li>オフライン時はローカルキャッシュから直近の予定を表示</li>
+      <li>Windows のライト / ダークテーマ、DPI、ローカルタイムゾーンの変更に追従</li>
+      <li>タスクトレイ常駐、Windows ログオン時の自動起動、単一インスタンス動作</li>
+    </ul>
+
+    <p>UnifiedCalendar は閲覧に特化しています。アプリ内での予定の作成・編集・削除、検索・絞り込み、通知、印刷・エクスポート、自動アップデート、Push / Webhook 更新は提供しません。</p>
+
+    <h2>動作環境</h2>
+
+    <ul>
+      <li>Windows 11 x64</li>
+      <li>日本語 UI</li>
+      <li>配布版は .NET 8 の自己完結型アプリケーションであり、.NET ランタイムの別途インストールは不要です</li>
+    </ul>
+
+    <h2>開発環境</h2>
+
+    <ul>
+      <li>Windows 11 x64</li>
+      <li>.NET 8 SDK</li>
+      <li>Visual Studio 2022（任意）</li>
+      <li>PowerShell</li>
+      <li>Inno Setup 6（インストーラを作成する場合）</li>
+    </ul>
+
+    <p>リポジトリのルートで次を実行すると、依存関係の復元、Release ビルド、テスト、自己完結型発行を順に行います。</p>
+
+    <pre><code>.\build.ps1</code></pre>
+
+    <p>発行物は <code>artifacts\publish\win-x64</code> に生成されます。資格情報を設定せずにビルドすることもできますが、その発行物では該当プロバイダーのアカウント追加が無効になり、ビルド終了時に警告が表示されます。</p>
+
+    <p>テストのみを実行する場合は次のコマンドを使用します。</p>
+
+    <pre><code>dotnet test .\UnifiedCalendar.sln --configuration Release</code></pre>
+
+    <h2>OAuth クライアント資格情報</h2>
+
+    <p>カレンダーサービスへ接続するには、Google Cloud と Microsoft Entra ID でデスクトップアプリ用の OAuth クライアントを登録し、次の環境変数を設定します。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">環境変数</th>
+          <th scope="col">用途</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>UnifiedCalendar__Google__ClientId</code></td>
+          <td>Google OAuth クライアント ID</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar__Google__ClientSecret</code></td>
+          <td>Google デスクトップクライアントのクライアントシークレット</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar__Microsoft__ClientId</code></td>
+          <td>Microsoft Entra ID のアプリケーション（クライアント）ID</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Google の Client ID と Client Secret は必ず同じクライアントの組として設定してください。Microsoft はパブリックデスクトップクライアントとして動作するため、Client Secret は使用しません。</p>
+
+    <p>PowerShell セッションで設定してビルドする例:</p>
+
+    <pre><code>$env:UnifiedCalendar__Google__ClientId = "your-google-client-id"
+$env:UnifiedCalendar__Google__ClientSecret = "your-google-client-secret"
+$env:UnifiedCalendar__Microsoft__ClientId = "your-microsoft-client-id"
+
+.\build.ps1</code></pre>
+
+    <p><code>build.ps1</code> は値を発行アセンブリへ埋め込みます。環境変数の値や資格情報をソースコード、設定ファイル、コミットへ含めないでください。実行時に同名の環境変数を設定すると、埋め込み値より優先して使用されます。</p>
+
+    <p>登録方式、必要な権限、Google のテストユーザー運用などの詳細は <a href="docs/technical-design/08-oauth-and-token-storage.md">OAuth認証・トークン保存設計</a> を参照してください。</p>
+
+    <h2>インストーラの作成</h2>
+
+    <p>先に <code>build.ps1</code> で発行物を作成し、Inno Setup 6 をインストールしてから実行します。</p>
+
+    <pre><code>.\build-installer.ps1</code></pre>
+
+    <p>配布用ビルドでは、発行物に Google / Microsoft の資格情報がすべて埋め込まれていることと、生成物のコード署名を既定で検証します。署名には、ビルドマシンの Inno Setup に <code>MySignTool</code> の登録が必要です。</p>
+
+    <p>ローカル確認用に、資格情報と署名を意図的に省略したインストーラを作成する場合:</p>
+
+    <pre><code>.\build-installer.ps1 -NoSign -AllowMissingCredentials</code></pre>
+
+    <p>生成先は <code>artifacts\installer\UnifiedCalendar-Setup-1.0.0.exe</code> です。インストーラはユーザー単位でインストールされ、管理者権限を必要としません。</p>
+
+    <h2>データとプライバシー</h2>
+
+    <p>ユーザーデータは <code>%LOCALAPPDATA%\UnifiedCalendar</code> 以下に保存されます。</p>
+
+    <pre><code>%LOCALAPPDATA%\UnifiedCalendar\
+├─ settings\settings.json
+├─ tokens\google\...
+├─ tokens\microsoft\...
+├─ cache\accounts\...
+├─ logs\unifiedcalendar-YYYYMMDD.log
+└─ recovery\</code></pre>
+
+    <ul>
+      <li>OAuth トークンは Windows DPAPI CurrentUser で暗号化され、同じ Windows ユーザーとPCでのみ復号できます</li>
+      <li>設定と予定キャッシュは平文 JSON です。予定の件名、説明、場所、URL、アカウント表示情報がローカルに残る点に注意してください</li>
+      <li>ログにはトークン、メールアドレス、表示名、予定内容、URL、生のカレンダー ID / イベント ID を記録しません</li>
+      <li>ログは日単位でローテーションし、30日分を保持します</li>
+      <li>アンインストールしてもユーザーデータは削除されません</li>
+    </ul>
+
+    <h2>ソリューション構成</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">プロジェクト</th>
+          <th scope="col">役割</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>UnifiedCalendar.App</code></td>
+          <td>WPF UI、MVVM、アプリケーション起動とDI構成</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar.Core</code></td>
+          <td>ドメインモデル、同期・表示ロジック、抽象インターフェース</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar.Infrastructure</code></td>
+          <td>JSON保存、DPAPI、ログ、OS連携</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar.Providers.Google</code></td>
+          <td>Google Calendar API と OAuth 連携</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar.Providers.Microsoft</code></td>
+          <td>Microsoft Graph と MSAL 連携</td>
+        </tr>
+        <tr>
+          <td><code>UnifiedCalendar.Tests</code></td>
+          <td>xUnit によるユニット・統合・WPFテスト</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>ドキュメント</h2>
+
+    <ul>
+      <li><a href="docs/specification.md">製品仕様書</a></li>
+      <li><a href="docs/technical-design/README.md">技術設計書</a></li>
+      <li><a href="docs/technical-design/15-testing-and-acceptance.md">テスト戦略と受入マトリクス</a></li>
+      <li><a href="docs/acceptance-phase8.md">1.0.0 実機受入結果</a></li>
+      <li><a href="docs/technical-design/16-security-and-privacy.md">セキュリティ・プライバシー設計</a></li>
+    </ul>
+
+    <p>実装や仕様を変更する場合は、コードとあわせて関連ドキュメントも更新してください。</p>
+  </main>
+</body>
+</html>
